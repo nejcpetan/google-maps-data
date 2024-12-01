@@ -65,4 +65,90 @@ A Streamlit-based web application that allows users to scrape business informati
 Before running the application, you need to set up your Google Maps API key. You have two options:
 
 ### Option 1: Environment Variable
-Create a `.env` file in the project root: 
+Create a `.env` file in the project root:
+```
+GOOGLE_MAPS_API_KEY=your_api_key_here
+```
+
+### Option 2: Streamlit Secrets
+Create a `.streamlit/secrets.toml` file:
+```toml
+GOOGLE_MAPS_API_KEY = "your_api_key_here"
+```
+
+## Usage
+
+1. Start the application using the appropriate run script
+2. Enter a search term (e.g., "restaurants", "plumbers", "nail salon")
+3. Enter a location (e.g., "New York", "Berlin", "Ljubljana")
+4. Click "Run Scraper"
+5. Wait for the scraping to complete
+6. Download the results using the file browser section
+
+## Cost Considerations
+
+The application uses the Google Places API, which has associated costs:
+- Text Search: $0.017 per request (returns up to 20 results)
+- Place Details: $0.017 per request (one per business)
+- Free monthly credit: $200
+
+The application is configured to limit results to 60 businesses per search to control costs.
+
+## File Structure
+
+```
+├── main.py              # Main application code
+├── requirements.txt     # Python dependencies
+├── setup.bat           # Windows setup script
+├── setup.sh            # Unix setup script
+├── run.bat             # Windows run script
+├── run.sh              # Unix run script
+├── .gitignore          # Git ignore file
+└── scraper_results/    # Directory for CSV exports
+```
+
+## Output Format
+
+The scraper generates CSV files with the following columns:
+- Company Name
+- Address
+- Phone Number
+- Website
+- Email
+- Opening Hours
+- Google Maps URL
+- Rating
+- User Ratings Total
+
+All files are saved with UTF-8 encoding to properly handle international characters.
+
+## Error Handling
+
+The application includes error handling for:
+- Missing API key
+- API request failures
+- Rate limiting
+- Network issues
+- Invalid search parameters
+
+## Contributing
+
+Feel free to fork this repository and submit pull requests for any improvements.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Disclaimer
+
+Please ensure you comply with Google's Terms of Service and usage limits when using this application. The developer is not responsible for any misuse or violation of Google's terms of service.
+
+## Support
+
+If you encounter any issues or have questions, please open an issue in the GitHub repository.
+
+## Acknowledgments
+
+- Google Places API documentation
+- Streamlit community
+- Contributors and users who provide feedback
