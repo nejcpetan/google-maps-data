@@ -1,46 +1,136 @@
 import httpx
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 import asyncio
+import json
+from math import cos, radians
+from datetime import datetime
 
 async def search_places(query: str, api_key: str, max_results: int = 20) -> List[Dict[str, Any]]:
-    # Split the request into multiple calls if max_results > 20
     all_results = []
-    remaining = max_results
-    page_token = None
-    
-    while remaining > 0:
-        url = "https://places.googleapis.com/v1/places:searchText"
-        headers = {
-            'Content-Type': 'application/json',
-            'X-Goog-Api-Key': api_key,
-            'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount'
-        }
+    url = "https://places.googleapis.com/v1/places:searchText"
+    headers = {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': api_key,
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,nextPageToken'
+    }
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        page_token = None
+        page_count = 0
         
-        data = {
-            'textQuery': query,
-            'maxResultCount': min(remaining, 20)  # Google's API limit is 20 per request
-        }
-        if page_token:
-            data['pageToken'] = page_token
-        
-        async with httpx.AsyncClient() as client:
-            response = await client.post(url, headers=headers, json=data)
-            response.raise_for_status()
-            result = response.json()
-            places = result.get('places', [])
-            all_results.extend(places)
-            
-            # Check if there are more results
-            page_token = result.get('nextPageToken')
-            remaining -= len(places)
-            
-            if not page_token or not places:
+        while len(all_results) < max_results:
+            try:
+                # Prepare request data
+                request_data = {
+                    'textQuery': query,
+                    'pageSize': min(20, max_results - len(all_results))  # Request up to 20 at a time
+                }
+                if page_token:
+                    request_data['pageToken'] = page_token
+                
+                # Make request
+                response = await client.post(url, headers=headers, json=request_data)
+                response.raise_for_status()
+                result = response.json()
+                
+                # Get places from response
+                places = result.get('places', [])
+                if not places:
+                    print(f"No more places found after {len(all_results)} results")
+                    break
+                
+                # Add places to results
+                all_results.extend(places)
+                page_count += 1
+                print(f"Page {page_count}: Found {len(places)} places. Total so far: {len(all_results)}")
+                
+                # Check if we have a next page
+                page_token = result.get('nextPageToken')
+                if not page_token:
+                    print("No next page token received")
+                    break
+                
+                # Small delay before next request (required by Google)
+                await asyncio.sleep(2)
+                
+            except Exception as e:
+                print(f"Error on page {page_count + 1}: {str(e)}")
                 break
-            
-            # Small delay to avoid rate limiting
-            await asyncio.sleep(0.5)
     
-    return all_results
+    print(f"Final result count: {len(all_results)}")
+    return all_results[:max_results]
+
+async def search_nearby(client, location, query: str, api_key: str, remaining: int) -> List[Dict[str, Any]]:
+    """Helper function to perform nearby search"""
+    nearby_results = []
+    
+    # Different radius and ranking combinations
+    variations = [
+        {'radius': 25000, 'rank': 'RATING'},
+        {'radius': 25000, 'rank': 'DISTANCE'},
+        {'radius': 15000, 'rank': 'RATING'},
+    ]
+    
+    headers = {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': api_key,
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.location'
+    }
+    
+    for variation in variations:
+        if len(nearby_results) >= remaining:
+            break
+            
+        try:
+            nearby_data = {
+                'locationRestriction': {
+                    'circle': {
+                        'center': location,
+                        'radius': float(variation['radius'])
+                    }
+                },
+                'maxResultCount': remaining,
+                'rankPreference': variation['rank']
+            }
+            
+            # Add original query as keyword
+            if not any(word.lower() in ['in', 'at', 'near'] for word in query.split()):
+                nearby_data['textQuery'] = query.split()[0]
+            
+            response = await client.post(
+                "https://places.googleapis.com/v1/places:searchNearby",
+                headers=headers,
+                json=nearby_data
+            )
+            
+            if response.status_code == 200:
+                results = response.json().get('places', [])
+                nearby_results.extend(results)
+                print(f"Nearby search ({variation['radius']}m, {variation['rank']}): Found {len(results)} places")
+            
+            await asyncio.sleep(0.5)
+            
+        except Exception as e:
+            print(f"Nearby search error: {str(e)}")
+            continue
+    
+    return nearby_results
+
+def generate_grid_points(center_lat: float, center_lng: float, radius_km: float, grid_size: int) -> List[Tuple[float, float]]:
+    """Generate a grid of points around a center location."""
+    points = []
+    # Calculate lat/lng deltas (approximate)
+    lat_delta = radius_km / 111.0  # 1 degree lat = ~111km
+    lng_delta = radius_km / (111.0 * cos(radians(center_lat)))  # Adjust for latitude
+    
+    # Generate grid
+    for i in range(-grid_size//2, grid_size//2 + 1):
+        for j in range(-grid_size//2, grid_size//2 + 1):
+            lat = center_lat + (i * lat_delta)
+            lng = center_lng + (j * lng_delta)
+            points.append((lat, lng))
+    
+    return points
 
 async def get_place_details(place_id: str, api_key: str) -> Dict[str, Any]:
     url = f"https://places.googleapis.com/v1/places/{place_id}"
@@ -61,25 +151,43 @@ async def get_place_details(place_id: str, api_key: str) -> Dict[str, Any]:
         result = response.json()
         
         # Clean and format the data
-        display_name = result.get('displayName', {}).get('text', '')
-        business_type = result.get('primaryTypeDisplayName', '')
+        company = result.get('displayName', {}).get('text', '')
         
-        # Format opening hours with proper encoding
+        # Clean up the type field
+        business_type = result.get('primaryTypeDisplayName', '')
+        if isinstance(business_type, dict):
+            business_type = business_type.get('text', '')
+            
+        # Format phone number (remove spaces, ensure proper format)
+        phone = result.get('nationalPhoneNumber', '') or result.get('internationalPhoneNumber', '')
+        phone = phone.replace(' ', '').replace('(', '').replace(')', '')
+        if phone and not phone.startswith('+'):
+            phone = '+' + phone
+            
+        # Format address
+        address = result.get('formattedAddress', '')
+        
+        # Format opening hours
         opening_hours = []
         if 'regularOpeningHours' in result:
             hours = result.get('regularOpeningHours', {}).get('weekdayDescriptions', [])
-            # Clean up the time format
             opening_hours = [h.replace('\u2009', ' ').replace('\u2013', '-') for h in hours]
-        formatted_hours = ' | '.join(opening_hours) if opening_hours else ''
+        business_hours = ' | '.join(opening_hours) if opening_hours else ''
         
+        # Format rating as a number out of 5
+        rating = result.get('rating', '')
+        if rating:
+            rating = f"{rating}/5"
+            
         return {
-            'Business Name': display_name,
-            'Type': business_type,
-            'Address': result.get('formattedAddress', ''),
-            'Phone': result.get('nationalPhoneNumber', '') or result.get('internationalPhoneNumber', ''),
-            'Website': result.get('websiteUri', ''),
-            'Opening Hours': formatted_hours,
-            'Maps URL': result.get('googleMapsUri', ''),
-            'Rating': str(result.get('rating', '')),
-            'Reviews Count': str(result.get('userRatingCount', ''))
+            'Company': company,  # HubSpot company name property
+            'Phone Number': phone,  # HubSpot phone property
+            'Website URL': result.get('websiteUri', ''),  # HubSpot website property
+            'Street Address': address,  # HubSpot street address property
+            'Business Type': business_type,  # Custom property
+            'Business Hours': business_hours,  # Custom property
+            'Google Maps URL': result.get('googleMapsUri', ''),  # Custom property
+            'Rating': rating,  # Custom property
+            'Number of Reviews': result.get('userRatingCount', ''),  # Custom property
+            'Last Updated': datetime.now().strftime('%Y-%m-%d')  # HubSpot last modified date
         } 

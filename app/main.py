@@ -88,11 +88,17 @@ async def home(request: Request):
 @app.get("/api/search")
 async def search(query: str, max_results: int = 20, min_rating: float = 0):
     try:
+        print(f"Searching for '{query}' with max_results={max_results}")  # Debug log
         results = await search_places(query, api_key, max_results)
+        print(f"Found {len(results)} results before rating filter")  # Debug log
+        
         if min_rating > 0:
             results = [r for r in results if float(r.get('rating', 0) or 0) >= min_rating]
+            print(f"After rating filter: {len(results)} results")  # Debug log
+            
         return JSONResponse(content={"results": results})
     except Exception as e:
+        print(f"Search error: {str(e)}")  # Debug log
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/api/export")
@@ -112,18 +118,21 @@ async def export_data(request: ExportRequest):
         
         # Save to exports directory with timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"places_export_{timestamp}.{request.format}"
+        filename = f"hubspot_import_{timestamp}.{request.format}"
         filepath = os.path.join("exports", filename)
         os.makedirs("exports", exist_ok=True)
         
         if request.format == "csv":
-            df.to_csv(filepath, index=False, encoding='utf-8-sig', 
-                     quoting=csv.QUOTE_MINIMAL,
-                     quotechar='"')
+            # HubSpot-specific CSV formatting
+            df.to_csv(filepath, 
+                     index=False,
+                     encoding='utf-8-sig',  # Required for HubSpot
+                     quoting=csv.QUOTE_ALL,  # Quote all fields
+                     quotechar='"',
+                     na_rep='')  # Empty string for missing values
         else:
             df.to_excel(filepath, index=False, engine='openpyxl')
         
-        # Return the file
         return FileResponse(
             filepath,
             filename=filename,

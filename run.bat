@@ -1,4 +1,4 @@
 @echo off
-call venv\Scripts\activate.bat
-streamlit run main.py
-pause 
+call venv\Scripts\activate
+uvicorn main:app --reload
+pause

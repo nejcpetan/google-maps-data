@@ -1,30 +1,38 @@
-# Google Maps Business Scraper
+# Places Data Gatherer
 
-A Streamlit-based web application that allows users to scrape business information from Google Maps using the Google Places API. The application provides an easy-to-use interface for searching businesses by location and extracting relevant information into CSV files.
+A FastAPI-based web application that allows users to search and export business information from Google Maps using the Google Places API v1. The application provides a modern, responsive interface for searching businesses and exporting detailed information in multiple formats.
 
 ## Features
 
-- Search businesses by keyword and location
-- Extracts detailed business information including:
-  - Company Name
+- Search businesses by keyword with customizable parameters:
+  - Maximum number of results
+  - Minimum rating filter
+- Detailed business information export including:
+  - Business Name
+  - Business Type
   - Address
   - Phone Number
   - Website
-  - Email (if available)
   - Opening Hours
-  - Ratings and Reviews Count
+  - Rating and Review Count
   - Google Maps URL
-- UTF-8 encoding support for international characters
-- CSV export functionality
-- Built-in file browser for downloading previous searches
+- Export options:
+  - CSV format
+  - Excel format
+- Modern, responsive UI with dark theme
+- Export history management
+- API key configuration interface
 
 ## Tech Stack
 
-- **Python 3.8+**
-- **Streamlit**: Web application framework
-- **Pandas**: Data manipulation and CSV handling
-- **Requests**: HTTP requests to Google Places API
-- **python-dotenv**: Environment variable management
+- **Python 3.12**
+- **FastAPI**: Web application framework
+- **Jinja2**: Template engine
+- **HTTPX**: Async HTTP client
+- **Pandas**: Data processing and export
+- **DaisyUI + Tailwind CSS**: UI components and styling
+- **JavaScript**: Client-side interactivity
+- **Google Places API**: Business data source
 
 ## Prerequisites
 
@@ -34,35 +42,40 @@ A Streamlit-based web application that allows users to scrape business informati
 
 ## Installation
 
-### Windows Users
-
-1. Clone this repository or download the files
-2. Double-click `setup.bat`
-3. Wait for the setup to complete
-4. Add your Google Maps API key (see Configuration section)
-5. Double-click `run.bat` to start the application
-
-### Linux/Mac Users
-
-1. Clone this repository or download the files
-2. Open terminal in the project directory
-3. Make the scripts executable:
+1. Clone this repository:
    ```bash
-   chmod +x setup.sh run.sh
+   git clone <repository-url>
+   cd places-data-gatherer
    ```
-4. Run the setup script:
+
+2. Create and activate a virtual environment:
    ```bash
-   ./setup.sh
+   python -m venv venv
+   # Windows
+   venv\Scripts\activate
+   # Unix/MacOS
+   source venv/bin/activate
    ```
-5. Add your Google Maps API key (see Configuration section)
-6. Run the application:
+
+3. Install dependencies:
    ```bash
-   ./run.sh
+   pip install -r requirements.txt
+   ```
+
+4. Configure your Google Maps API key (see Configuration section)
+
+5. Run the application:
+   ```bash
+   python main.py
+   ```
+   or
+   ```bash
+   uvicorn main:app --reload
    ```
 
 ## Configuration
 
-Before running the application, you need to set up your Google Maps API key. You have two options:
+Before running the application, you need to set up your Google Maps API key. You have several options:
 
 ### Option 1: Environment Variable
 Create a `.env` file in the project root:
@@ -70,70 +83,64 @@ Create a `.env` file in the project root:
 GOOGLE_MAPS_API_KEY=your_api_key_here
 ```
 
-### Option 2: Streamlit Secrets
-Create a `.streamlit/secrets.toml` file:
-```toml
-GOOGLE_MAPS_API_KEY = "your_api_key_here"
-```
+### Option 2: Settings Interface
+1. Start the application
+2. Navigate to Settings
+3. Enter your API key in the provided form
 
 ## Usage
 
-1. Start the application using the appropriate run script
-2. Enter a search term (e.g., "restaurants", "plumbers", "nail salon")
-3. Enter a location (e.g., "New York", "Berlin", "Ljubljana")
-4. Click "Run Scraper"
-5. Wait for the scraping to complete
-6. Download the results using the file browser section
-
-## Cost Considerations
-
-The application uses the Google Places API, which has associated costs:
-- Text Search: $0.017 per request (returns up to 20 results)
-- Place Details: $0.017 per request (one per business)
-- Free monthly credit: $200
-
-The application is configured to limit results to 60 businesses per search to control costs.
+1. Start the application and navigate to http://localhost:8000
+2. Enter a search term (e.g., "restaurants in New York")
+3. Adjust the maximum results and minimum rating if desired
+4. Click Search
+5. Select the businesses you want to export
+6. Choose your export format (CSV or Excel)
+7. Click Export Selected
+8. Access your exports from the Exports page
 
 ## File Structure
 
 ```
-├── main.py              # Main application code
-├── requirements.txt     # Python dependencies
-├── setup.bat           # Windows setup script
-├── setup.sh            # Unix setup script
-├── run.bat             # Windows run script
-├── run.sh              # Unix run script
-├── .gitignore          # Git ignore file
-└── scraper_results/    # Directory for CSV exports
+├── app/
+│   ├── __init__.py
+│   ├── api.py          # Google Places API integration
+│   ├── main.py         # FastAPI application
+│   ├── static/         # Static assets
+│   ├── templates/      # HTML templates
+├── exports/            # Export files directory
+├── main.py            # Application entry point
+├── requirements.txt   # Python dependencies
+└── .env              # Environment variables
 ```
 
-## Output Format
+## API Endpoints
 
-The scraper generates CSV files with the following columns:
-- Company Name
-- Address
-- Phone Number
-- Website
-- Email
-- Opening Hours
-- Google Maps URL
-- Rating
-- User Ratings Total
-
-All files are saved with UTF-8 encoding to properly handle international characters.
+- `GET /`: Main search interface
+- `GET /api/search`: Search places
+- `POST /api/export`: Export selected places
+- `GET /exports`: View export history
+- `GET /settings`: API key configuration
 
 ## Error Handling
 
-The application includes error handling for:
-- Missing API key
+The application includes comprehensive error handling for:
+- Missing or invalid API key
 - API request failures
-- Rate limiting
 - Network issues
 - Invalid search parameters
+- Export processing errors
+
+## Cost Considerations
+
+The application uses the Google Places API v1, which has associated costs:
+- Places Search: Costs apply per request
+- Place Details: Costs apply per place
+- Refer to Google's pricing documentation for current rates
 
 ## Contributing
 
-Feel free to fork this repository and submit pull requests for any improvements.
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
@@ -141,14 +148,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Disclaimer
 
-Please ensure you comply with Google's Terms of Service and usage limits when using this application. The developer is not responsible for any misuse or violation of Google's terms of service.
+This tool is provided as-is. Users are responsible for complying with Google's Terms of Service and usage limits when using this application.
 
 ## Support
 
 If you encounter any issues or have questions, please open an issue in the GitHub repository.
-
-## Acknowledgments
-
-- Google Places API documentation
-- Streamlit community
-- Contributors and users who provide feedback

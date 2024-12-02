@@ -3,10 +3,16 @@ echo Creating virtual environment...
 python -m venv venv
 
 echo Activating virtual environment...
-call venv\Scripts\activate.bat
+call venv\Scripts\activate
 
 echo Upgrading pip...
-python -m pip install --upgrade pip
+python.exe -m pip install --upgrade pip
+
+echo Installing wheel...
+pip install wheel
+
+echo Upgrading setuptools...
+pip install --upgrade setuptools
 
 echo Installing requirements...
 pip install -r requirements.txt
@@ -14,8 +20,8 @@ pip install -r requirements.txt
 echo Creating run script...
 (
 echo @echo off
-echo call venv\Scripts\activate.bat
-echo streamlit run main.py
+echo call venv\Scripts\activate
+echo uvicorn main:app --reload
 echo pause
 ) > run.bat
 
