@@ -1,23 +1,26 @@
-# Places Data Gatherer
+# Places Data Gatherer with HubSpot Export
 
-A FastAPI-based web application that allows users to search and export business information from Google Maps using the Google Places API v1. The application provides a modern, responsive interface for searching businesses and exporting detailed information in multiple formats.
+A FastAPI-based web application that allows users to search and export business information from Google Maps using the Google Places API v1. The application provides a modern, responsive interface for searching businesses and exporting detailed information in HubSpot-compatible formats.
 
 ## Features
 
-- Search businesses by keyword with customizable parameters:
-  - Maximum number of results
+- Advanced business search capabilities:
+  - Search by keyword and location
+  - Configurable maximum results (up to 1000)
   - Minimum rating filter
-- Detailed business information export including:
-  - Business Name
-  - Business Type
-  - Address
-  - Phone Number
-  - Website
-  - Opening Hours
-  - Rating and Review Count
+  - Pagination support for large result sets
+- HubSpot-ready exports including:
+  - Company record ID (using Google Place ID)
+  - Company name
+  - Phone number
+  - Website URL
+  - Street address
+  - Business type
+  - Business hours
   - Google Maps URL
+  - Rating and review count
 - Export options:
-  - CSV format
+  - CSV format (HubSpot-compatible)
   - Excel format
 - Modern, responsive UI with dark theme
 - Export history management
@@ -36,7 +39,7 @@ A FastAPI-based web application that allows users to search and export business 
 
 ## Prerequisites
 
-- Python 3.8 or higher
+- Python 3.12 or higher
 - Google Maps API key with Places API enabled
 - Internet connection
 
@@ -92,12 +95,23 @@ GOOGLE_MAPS_API_KEY=your_api_key_here
 
 1. Start the application and navigate to http://localhost:8000
 2. Enter a search term (e.g., "restaurants in New York")
-3. Adjust the maximum results and minimum rating if desired
-4. Click Search
-5. Select the businesses you want to export
-6. Choose your export format (CSV or Excel)
-7. Click Export Selected
-8. Access your exports from the Exports page
+3. Set your desired maximum results (up to 1000)
+4. Adjust the minimum rating if desired
+5. Click Search
+6. Select the businesses you want to export
+7. Choose your export format (CSV for HubSpot)
+8. Click Export Selected
+9. Access your exports from the Exports page
+
+## HubSpot Integration
+
+The application generates CSV files that are ready for HubSpot import with:
+- Proper field naming conventions
+- Company record ID for deduplication
+- Formatted phone numbers
+- UTF-8 encoding with BOM
+- Properly quoted fields
+- Empty values handled correctly
 
 ## File Structure
 
@@ -113,14 +127,6 @@ GOOGLE_MAPS_API_KEY=your_api_key_here
 ├── requirements.txt   # Python dependencies
 └── .env              # Environment variables
 ```
-
-## API Endpoints
-
-- `GET /`: Main search interface
-- `GET /api/search`: Search places
-- `POST /api/export`: Export selected places
-- `GET /exports`: View export history
-- `GET /settings`: API key configuration
 
 ## Error Handling
 
