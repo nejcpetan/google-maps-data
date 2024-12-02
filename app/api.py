@@ -158,11 +158,9 @@ async def get_place_details(place_id: str, api_key: str) -> Dict[str, Any]:
         if isinstance(business_type, dict):
             business_type = business_type.get('text', '')
             
-        # Format phone number (remove spaces, ensure proper format)
+        # Format phone number (remove spaces and special characters)
         phone = result.get('nationalPhoneNumber', '') or result.get('internationalPhoneNumber', '')
-        phone = phone.replace(' ', '').replace('(', '').replace(')', '')
-        if phone and not phone.startswith('+'):
-            phone = '+' + phone
+        phone = phone.replace(' ', '').replace('(', '').replace(')', '').replace('+', '')
             
         # Format address
         address = result.get('formattedAddress', '')
@@ -174,20 +172,19 @@ async def get_place_details(place_id: str, api_key: str) -> Dict[str, Any]:
             opening_hours = [h.replace('\u2009', ' ').replace('\u2013', '-') for h in hours]
         business_hours = ' | '.join(opening_hours) if opening_hours else ''
         
-        # Format rating as a number out of 5
-        rating = result.get('rating', '')
-        if rating:
-            rating = f"{rating}/5"
+        # Get rating without /5
+        rating = str(result.get('rating', ''))
             
         return {
-            'Company': company,  # HubSpot company name property
-            'Phone Number': phone,  # HubSpot phone property
-            'Website URL': result.get('websiteUri', ''),  # HubSpot website property
-            'Street Address': address,  # HubSpot street address property
-            'Business Type': business_type,  # Custom property
-            'Business Hours': business_hours,  # Custom property
-            'Google Maps URL': result.get('googleMapsUri', ''),  # Custom property
-            'Rating': rating,  # Custom property
-            'Number of Reviews': result.get('userRatingCount', ''),  # Custom property
-            'Last Updated': datetime.now().strftime('%Y-%m-%d')  # HubSpot last modified date
+            'Company record ID': place_id,  # Using Google Place ID as unique identifier
+            'Company': company,
+            'Phone Number': phone,
+            'Website URL': result.get('websiteUri', ''),
+            'Street Address': address,
+            'Business Type': business_type,
+            'Business Hours': business_hours,
+            'Google Maps URL': result.get('googleMapsUri', ''),
+            'Rating': rating,
+            'Number of Reviews': result.get('userRatingCount', ''),
+            'Last Updated': datetime.now().strftime('%Y-%m-%d')
         } 
