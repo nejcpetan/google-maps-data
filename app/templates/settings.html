@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto p-4 space-y-4">
+    <div class="card bg-base-200 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title">API Settings</h2>
+            <div class="form-control w-full">
+                <label class="label">
+                    <span class="label-text">Google Maps API Key</span>
+                </label>
+                <input type="password" 
+                       id="api-key" 
+                       class="input input-bordered w-full" 
+                       value="{{ current_api_key if current_api_key else '' }}"
+                       placeholder="Enter your Google Maps API key" />
+                <label class="label">
+                    <span class="label-text-alt">Your API key is stored securely in the server's environment</span>
+                </label>
+                <button onclick="saveApiKey()" class="btn btn-primary mt-4">
+                    Save API Key
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function saveApiKey() {
+    const apiKey = document.getElementById('api-key').value;
+    try {
+        const response = await fetch('/api/settings/apikey', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ api_key: apiKey })
+        });
+        
+        if (!response.ok) throw new Error('Failed to save API key');
+        
+        // Show success message
+        alert('API key saved successfully!');
+        window.location.href = '/';
+    } catch (error) {
+        alert('Error saving API key: ' + error.message);
+    }
+}
+</script>
+{% endblock %} 
